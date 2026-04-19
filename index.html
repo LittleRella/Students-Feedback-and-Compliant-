@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FeedbackBackend v2.0 - Analysis Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4f46e5;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-[#f8fafc] text-slate-900 min-h-screen">
+    <div id="app" class="max-w-7xl mx-auto p-4 md:p-8 space-y-8">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <div class="flex items-center gap-2 mb-1">
+                    <div class="p-2 bg-indigo-600 rounded-lg shadow-lg">
+                        <i data-lucide="database" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <h1 class="text-2xl font-black tracking-tight">FeedbackBackend v2.0</h1>
+                </div>
+                <p class="text-slate-500 font-medium italic">Automated ROI & Sentiment Analysis Engine</p>
+            </div>
+            
+            <nav class="bg-white p-1 rounded-xl shadow-sm border border-slate-200 flex gap-1">
+                <button onclick="switchTab('upload')" id="nav-upload" class="nav-btn active flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all bg-indigo-600 text-white shadow-md">
+                    <i data-lucide="upload" class="w-4 h-4"></i> Ingest
+                </button>
+                <button onclick="switchTab('complaints')" id="nav-complaints" class="nav-btn flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all text-slate-500 hover:bg-slate-100">
+                    <i data-lucide="message-square" class="w-4 h-4"></i> Analyzer
+                </button>
+                <button onclick="switchTab('strategy')" id="nav-strategy" class="nav-btn flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all text-slate-500 hover:bg-slate-100">
+                    <i data-lucide="bar-chart-3" class="w-4 h-4"></i> ROI Map
+                </button>
+            </nav>
+        </header>
+
+        <!-- Stats Bar -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 group">
+                <div class="p-3 bg-slate-50 rounded-xl"><i data-lucide="file-text" class="text-blue-500 w-5 h-5"></i></div>
+                <div>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Processed</p>
+                    <p id="stat-total" class="text-xl font-black text-slate-900">2</p>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 group">
+                <div class="p-3 bg-slate-50 rounded-xl"><i data-lucide="shield-alert" class="text-red-500 w-5 h-5"></i></div>
+                <div>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Critical Risk</p>
+                    <p id="stat-critical" class="text-xl font-black text-slate-900">1</p>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 group">
+                <div class="p-3 bg-slate-50 rounded-xl"><i data-lucide="trending-up" class="text-emerald-500 w-5 h-5"></i></div>
+                <div>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Portfolio ROI</p>
+                    <p id="stat-roi" class="text-xl font-black text-slate-900">747%</p>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 group">
+                <div class="p-3 bg-slate-50 rounded-xl"><i data-lucide="dollar-sign" class="text-indigo-500 w-5 h-5"></i></div>
+                <div>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Locked Value</p>
+                    <p id="stat-value" class="text-xl font-black text-slate-900">$35.0k</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main id="tab-container" class="min-h-[500px]">
+            <!-- Upload Tab -->
+            <section id="view-upload" class="tab-view fade-in">
+                <div class="max-w-2xl mx-auto mt-12 space-y-6">
+                    <div id="drop-zone" onclick="simulateUpload()" class="bg-white border-2 border-dashed border-slate-300 rounded-3xl p-12 hover:border-indigo-400 transition-all group cursor-pointer relative overflow-hidden text-center">
+                        <div id="upload-idle" class="flex flex-col items-center">
+                            <div class="p-4 bg-indigo-50 rounded-full mb-4 group-hover:scale-110 transition-transform">
+                                <i data-lucide="upload" class="w-10 h-10 text-indigo-600"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-slate-800">Upload Student Complaint Sheet</h3>
+                            <p class="text-slate-500 mt-2 max-w-sm mx-auto">Drop your .xlsx or .csv here. Our engine will auto-categorize complaints and calculate ROI.</p>
+                        </div>
+                        <div id="upload-loading" class="hidden flex flex-col items-center">
+                            <div class="loading-spinner mb-4"></div>
+                            <h3 class="text-xl font-bold">Parsing Dataset...</h3>
+                            <p class="text-slate-500 mt-2 italic">Running sentiment analysis and ROI projections</p>
+                        </div>
+                    </div>
+
+                    <!-- Template Download Section -->
+                    <div class="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div class="flex items-center gap-4">
+                            <div class="p-3 bg-white rounded-xl text-indigo-600 shadow-sm">
+                                <i data-lucide="file-spreadsheet" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-slate-800">Missing a file?</h4>
+                                <p class="text-sm text-slate-500">Download our structured template for the best results.</p>
+                            </div>
+                        </div>
+                        <button onclick="downloadTemplate()" class="bg-white hover:bg-slate-50 text-indigo-600 border border-indigo-200 px-6 py-2.5 rounded-xl font-bold text-sm shadow-sm transition-colors flex items-center gap-2">
+                            <i data-lucide="download" class="w-4 h-4"></i> Download Template
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Complaints Tab -->
+            <section id="view-complaints" class="tab-view hidden fade-in">
+                <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+                    <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                        <h2 class="font-bold text-lg flex items-center gap-2">
+                            <i data-lucide="alert-circle" class="w-5 h-5 text-indigo-600"></i> Analysis Queue
+                        </h2>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="text-[10px] text-slate-400 font-black uppercase tracking-widest bg-white">
+                                    <th class="px-6 py-4">Complaint Meta</th>
+                                    <th class="px-6 py-4">AI Analysis & Feedback</th>
+                                    <th class="px-6 py-4 text-center">Urgency</th>
+                                    <th class="px-6 py-4 text-right">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="complaints-list" class="divide-y divide-slate-100 bg-white">
+                                <!-- Dynamic rows here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Strategy Tab -->
+            <section id="view-strategy" class="tab-view hidden fade-in">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
+                        <h3 class="text-xl font-bold mb-8 flex items-center gap-2 text-slate-800">
+                            <i data-lucide="trending-up" class="w-5 h-5 text-emerald-500"></i> Profitability vs Effort Map
+                        </h3>
+                        <div id="roi-bars-container" class="space-y-8">
+                            <!-- Dynamic Bars -->
+                        </div>
+                    </div>
+                    <div class="space-y-6">
+                        <div class="bg-indigo-900 rounded-3xl p-8 text-white relative overflow-hidden shadow-2xl">
+                            <h4 class="text-indigo-300 font-bold uppercase text-xs tracking-widest mb-4">Strategic Recommendation</h4>
+                            <p class="text-xl font-medium leading-relaxed">Based on current analytics, resolving <span class="text-indigo-300 underline font-bold">Checkout Issues</span> offers the highest immediate revenue recovery.</p>
+                            <button class="mt-8 px-6 py-3 bg-white text-indigo-900 rounded-xl font-bold text-sm">Approve Budget</button>
+                        </div>
+                        <div class="bg-white border border-slate-200 p-8 rounded-3xl">
+                            <h4 class="font-bold text-slate-800 mb-6 text-sm uppercase tracking-widest">Team Bandwidth</h4>
+                            <div class="space-y-6">
+                                <div class="space-y-2">
+                                    <div class="flex justify-between text-xs font-bold uppercase"><span class="text-slate-600">Engineering</span><span class="text-slate-400">88%</span></div>
+                                    <div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-indigo-500 w-[88%]"></div></div>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="flex justify-between text-xs font-bold uppercase"><span class="text-slate-600">Support</span><span class="text-slate-400">92%</span></div>
+                                    <div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-red-500 w-[92%]"></div></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // State Management
+        let complaints = [
+            { id: 'STU-902', category: 'UI/UX', description: 'Navigation menu is confusing on mobile devices.', severity: 'Medium', date: '2024-05-10', status: 'In Progress', pmNote: 'Direct impact on mobile user retention.', urgency: 6, cost: 4500, gain: 20000, roi: 344, effort: 'High' },
+            { id: 'STU-765', category: 'Technical', description: 'Payment gateway timed out twice during checkout.', severity: 'Critical', date: '2024-05-14', status: 'Resolved', pmNote: 'Causing 12% drop-off at checkout.', urgency: 10, cost: 1200, gain: 15000, roi: 1150, effort: 'Low' }
+        ];
+
+        // Tab Switching
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-view').forEach(v => v.classList.add('hidden'));
+            document.getElementById(`view-${tabId}`).classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-indigo-600', 'text-white', 'shadow-md');
+                btn.classList.add('text-slate-500', 'hover:bg-slate-100');
+            });
+            const activeBtn = document.getElementById(`nav-${tabId}`);
+            activeBtn.classList.add('bg-indigo-600', 'text-white', 'shadow-md');
+            activeBtn.classList.remove('text-slate-500', 'hover:bg-slate-100');
+            
+            if(tabId === 'complaints') renderComplaints();
+            if(tabId === 'strategy') renderStrategy();
+        }
+
+        // Template Download Helper
+        function downloadTemplate() {
+            const headers = "Category,Description,Severity\n";
+            const exampleData = "Technical,Payment failed at checkout,Critical\nUI/UX,Font size too small on login page,Medium\nMobile,App crashes on startup,High";
+            const blob = new Blob([headers + exampleData], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', 'complaint_template.csv');
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // Simulate File Processing
+        async function simulateUpload() {
+            document.getElementById('upload-idle').classList.add('hidden');
+            document.getElementById('upload-loading').classList.remove('hidden');
+
+            await new Promise(r => setTimeout(r, 1800)); // Processing delay
+
+            const mockData = [
+                { id: `U-${Math.floor(Math.random()*1000)}`, category: 'Mobile', description: 'App crashes when opening profile settings.', severity: 'High', cost: 3200, gain: 12000 },
+                { id: `U-${Math.floor(Math.random()*1000)}`, category: 'Billing', description: 'Duplicate charge on monthly subscription.', severity: 'Critical', cost: 800, gain: 18000 }
+            ];
+
+            mockData.forEach(item => {
+                const roi = Math.round(((item.gain - item.cost) / item.cost) * 100);
+                complaints.unshift({
+                    ...item,
+                    date: new Date().toISOString().split('T')[0],
+                    status: 'Analyzed',
+                    pmNote: `System detected ${roi}% ROI opportunity.`,
+                    urgency: item.severity === 'Critical' ? 10 : 7,
+                    roi,
+                    effort: item.cost > 2000 ? 'High' : 'Low'
+                });
+            });
+
+            updateStats();
+            switchTab('complaints');
+            
+            document.getElementById('upload-idle').classList.remove('hidden');
+            document.getElementById('upload-loading').classList.add('hidden');
+        }
+
+        function updateStats() {
+            const total = complaints.length;
+            const critical = complaints.filter(c => c.severity === 'Critical').length;
+            const avgRoi = Math.round(complaints.reduce((a, b) => a + b.roi, 0) / total);
+            const totalGain = complaints.reduce((a, b) => a + b.gain, 0);
+
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-critical').innerText = critical;
+            document.getElementById('stat-roi').innerText = `${avgRoi}%`;
+            document.getElementById('stat-value').innerText = `$${(totalGain/1000).toFixed(1)}k`;
+        }
+
+        function renderComplaints() {
+            const container = document.getElementById('complaints-list');
+            container.innerHTML = complaints.map(c => `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-6 w-48">
+                        <span class="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full mb-2 inline-block uppercase">${c.category}</span>
+                        <div class="font-bold text-slate-900">${c.id}</div>
+                        <div class="text-[11px] text-slate-400 font-medium mt-1">${c.date}</div>
+                    </td>
+                    <td class="px-6 py-6 max-w-md">
+                        <p class="text-sm font-semibold text-slate-800 leading-relaxed mb-3">${c.description}</p>
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-3">
+                            <i data-lucide="zap" class="w-4 h-4 text-amber-500 shrink-0 mt-1"></i>
+                            <div>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase block mb-1">PM Insight</span>
+                                <p class="text-[12px] text-slate-600 font-medium italic">"${c.pmNote}"</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-6 text-center">
+                        <div class="flex flex-col items-center gap-1">
+                            <span class="text-lg font-black text-slate-800">${c.urgency}/10</span>
+                            <div class="w-12 h-1 bg-slate-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-indigo-600" style="width: ${c.urgency * 10}%"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-6 text-right">
+                        <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                            c.severity === 'Critical' ? 'bg-red-100 text-red-600' : 
+                            c.severity === 'High' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'
+                        }">${c.severity}</span>
+                    </td>
+                </tr>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function renderStrategy() {
+            const container = document.getElementById('roi-bars-container');
+            container.innerHTML = complaints.slice(0, 5).map(item => `
+                <div class="space-y-3">
+                    <div class="flex justify-between items-end">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 rounded-full ${item.effort === 'Low' ? 'bg-emerald-400' : 'bg-amber-400'}"></div>
+                            <span class="text-sm font-bold text-slate-800">${item.description.substring(0, 35)}...</span>
+                        </div>
+                        <span class="text-sm font-black text-emerald-600">${item.roi}% ROI</span>
+                    </div>
+                    <div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div class="h-full bg-emerald-500 rounded-full" style="width: ${Math.min(100, item.roi / 10)}%"></div>
+                    </div>
+                    <div class="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                        <span>Cost: $${item.cost}</span>
+                        <span>Effort: ${item.effort}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Init
+        window.onload = () => {
+            lucide.createIcons();
+            updateStats();
+        };
+    </script>
+</body>
+</html>
